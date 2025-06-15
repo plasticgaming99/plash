@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/plasticgaming99/plash/_lib/argparse"
+	"github.com/plasticgaming99/plash/_lib/termgrid"
 )
 
 type option struct {
@@ -36,22 +38,26 @@ func Ls(stdin io.Reader, stdout io.Writer, stderr io.Writer, args []string) erro
 		return err
 	}
 
-	var nam string
+	slices.SortFunc(files, func(a, b os.DirEntry) int {
+		return strings.Compare(a.Name(), b.Name())
+	})
 
-	for _, file := range files {
-		nam = file.Name()
-		if strings.HasPrefix(nam, ".") && !opt.All {
+	names := make([]string, len(files))
+	var n string
+	for i, entry := range files {
+		n = entry.Name()
+		if strings.HasPrefix(n, ".") && !opt.All {
 			continue
 		}
-		io.WriteString(stdout, nam+"  ")
+		names[i] = entry.Name()
 	}
-	fmt.Println()
 
-	/*cb := func(path string, d os.DirEntry, err error) error {
-		io.WriteString(stdout, d.Name()+"\n")
-		return nil
-	}*/
+	tg := termgrid.Termgrid{
+		Style:   termgrid.BottomToUp,
+		Padding: 2,
+	}
 
-	//filepath.WalkDir(path, cb)
+	tg.PrintSlice(stdout, names)
+
 	return nil
 }
